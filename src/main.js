@@ -1,13 +1,13 @@
-// Core Portfolio JavaScript (Maximalist / Neo-Brutalist Redesign)
+// Core Portfolio JavaScript (Rock Zine / Messy Maximalism)
 
-// 1. Particle Canvas Background (Floating Retro Geometric Shapes)
+// 1. Zine Canvas Backdrop (Floating Punk Stars, Lightning Bolts, Notes)
 const initStarfield = () => {
   const canvas = document.getElementById('bg-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   
-  let shapes = [];
-  const maxShapes = window.innerWidth < 768 ? 15 : 30;
+  let particles = [];
+  const maxParticles = window.innerWidth < 768 ? 20 : 40;
   let mouse = { x: null, y: null };
   
   const resizeCanvas = () => {
@@ -23,7 +23,40 @@ const initStarfield = () => {
   
   resizeCanvas();
   
-  class GeometricShape {
+  // Custom graphics drawing helpers
+  const drawStar = (c, x, y, r, p) => {
+    c.beginPath();
+    let rot = Math.PI/2*3;
+    let step = Math.PI/p;
+    let cx = x;
+    let cy = y;
+    
+    for (let i = 0; i < p; i++) {
+      cx = x + Math.cos(rot) * r;
+      cy = y + Math.sin(rot) * r;
+      c.lineTo(cx, cy);
+      rot += step;
+      cx = x + Math.cos(rot) * (r/2);
+      cy = y + Math.sin(rot) * (r/2);
+      c.lineTo(cx, cy);
+      rot += step;
+    }
+    c.lineTo(x, y - r);
+    c.closePath();
+  };
+  
+  const drawLightning = (c, x, y, size) => {
+    c.beginPath();
+    c.moveTo(x + size*0.3, y - size/2);
+    c.lineTo(x - size*0.2, y + size*0.1);
+    c.lineTo(x + size*0.1, y + size*0.1);
+    c.lineTo(x - size*0.3, y + size/2);
+    c.lineTo(x + size*0.2, y - size*0.1);
+    c.lineTo(x - size*0.1, y - size*0.1);
+    c.closePath();
+  };
+  
+  class ScribbleParticle {
     constructor() {
       this.reset();
     }
@@ -31,9 +64,9 @@ const initStarfield = () => {
     reset() {
       this.x = Math.random() * canvas.width;
       this.y = Math.random() * canvas.height;
-      this.size = Math.random() * 20 + 8;
-      this.type = Math.floor(Math.random() * 3); // 0: Cross, 1: Circle Outline, 2: Dot
-      this.opacity = Math.random() * 0.4 + 0.1;
+      this.size = Math.random() * 15 + 10;
+      this.type = Math.floor(Math.random() * 3); // 0: Punk Star, 1: Lightning, 2: Music Note
+      this.opacity = Math.random() * 0.35 + 0.1;
       this.vx = (Math.random() - 0.5) * 0.4;
       this.vy = (Math.random() - 0.5) * 0.4;
       this.rotation = Math.random() * Math.PI;
@@ -45,18 +78,18 @@ const initStarfield = () => {
       this.y += this.vy;
       this.rotation += this.rotationSpeed;
       
-      // Interactive drift towards mouse
+      // Cursor repulsion drift
       if (mouse.x !== null) {
         const dx = mouse.x - this.x;
         const dy = mouse.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 150) {
-          this.x += (dx / dist) * 0.2;
-          this.y += (dy / dist) * 0.2;
+        if (dist < 120) {
+          this.x -= (dx / dist) * 0.4;
+          this.y -= (dy / dist) * 0.4;
         }
       }
       
-      // Boundary check
+      // Boundary wraps
       if (this.x < -30 || this.x > canvas.width + 30 || this.y < -30 || this.y > canvas.height + 30) {
         this.reset();
       }
@@ -66,56 +99,58 @@ const initStarfield = () => {
       ctx.save();
       ctx.translate(this.x, this.y);
       ctx.rotate(this.rotation);
-      ctx.strokeStyle = `rgba(140, 90, 60, ${this.opacity})`; // Warm brown accents
-      ctx.fillStyle = `rgba(217, 56, 58, ${this.opacity})`;   // Bold red accents
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(18, 18, 18, ${this.opacity})`; // Dark borders
+      ctx.fillStyle = `rgba(184, 28, 32, ${this.opacity})`;   // Cherry red scrawls
+      ctx.lineWidth = 1.5;
       
       if (this.type === 0) {
-        // Cross
-        ctx.beginPath();
-        ctx.moveTo(-this.size/2, 0);
-        ctx.lineTo(this.size/2, 0);
-        ctx.moveTo(0, -this.size/2);
-        ctx.lineTo(0, this.size/2);
+        // Drawing a punk star (5-pointed)
+        drawStar(ctx, 0, 0, this.size/2, 5);
+        ctx.fill();
         ctx.stroke();
       } else if (this.type === 1) {
-        // Circle Outline
-        ctx.beginPath();
-        ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
+        // Lightning bolt
+        drawLightning(ctx, 0, 0, this.size);
+        ctx.fill();
         ctx.stroke();
       } else {
-        // Dot
+        // Eighth Note
         ctx.beginPath();
-        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.arc(-4, 4, 3.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.moveTo(-1, 4);
+        ctx.lineTo(-1, -8);
+        ctx.lineTo(6, -5);
+        ctx.lineTo(6, 1);
+        ctx.stroke();
       }
       ctx.restore();
     }
   }
   
-  for (let i = 0; i < maxShapes; i++) {
-    shapes.push(new GeometricShape());
+  for (let i = 0; i < maxParticles; i++) {
+    particles.push(new ScribbleParticle());
   }
   
   const animate = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw connecting mesh lines
-    for (let i = 0; i < shapes.length; i++) {
-      shapes[i].update();
-      shapes[i].draw();
+    // Draw hand-drawn connectors mesh
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update();
+      particles[i].draw();
       
-      for (let j = i + 1; j < shapes.length; j++) {
-        const dx = shapes[i].x - shapes[j].x;
-        const dy = shapes[i].y - shapes[j].y;
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist < 180) {
+        if (dist < 150) {
           ctx.beginPath();
-          ctx.moveTo(shapes[i].x, shapes[i].y);
-          ctx.lineTo(shapes[j].x, shapes[j].y);
-          ctx.strokeStyle = `rgba(26, 22, 18, ${0.04 * (1 - dist / 180)})`;
-          ctx.lineWidth = 1;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(84, 53, 26, ${0.06 * (1 - dist / 150)})`; // Brown connections
+          ctx.lineWidth = 0.5;
           ctx.stroke();
         }
       }
@@ -133,11 +168,11 @@ const initTypewriter = () => {
   if (!element) return;
   
   const roles = [
-    "ML SYSTEMS AT ISRO",
+    "ML PIPELINES @ ISRO",
     "APPLIED GENAI AGENTS",
     "FULL-STACK MERN APPS",
-    "ANDROID USER INTERFACES",
-    "GUITAR STUFF & VOCALS"
+    "ANDROID EMERGENCY SYSTEMS",
+    "GUITAR RIFFS & SONGS"
   ];
   
   let roleIndex = 0;
@@ -151,20 +186,20 @@ const initTypewriter = () => {
     if (isDeleting) {
       element.textContent = currentRole.substring(0, charIndex - 1);
       charIndex--;
-      delay = 40;
+      delay = 30;
     } else {
       element.textContent = currentRole.substring(0, charIndex + 1);
       charIndex++;
-      delay = 100;
+      delay = 80;
     }
     
     if (!isDeleting && charIndex === currentRole.length) {
       isDeleting = true;
-      delay = 2200; // Pause at end of text
+      delay = 2000;
     } else if (isDeleting && charIndex === 0) {
       isDeleting = false;
       roleIndex = (roleIndex + 1) % roles.length;
-      delay = 400; // Pause before typing next word
+      delay = 400;
     }
     
     setTimeout(tick, delay);
@@ -173,7 +208,7 @@ const initTypewriter = () => {
   tick();
 };
 
-// 3. Scroll Reveals and Sticky Header
+// 3. Scroll Reveals and Header Sticky Check
 const initScrollEffects = () => {
   const header = document.getElementById('header');
   const navLinks = document.querySelectorAll('.nav-link');
@@ -181,17 +216,15 @@ const initScrollEffects = () => {
   const reveals = document.querySelectorAll('.reveal');
   
   const handleScroll = () => {
-    // Header scrolled state
     if (window.scrollY > 40) {
       header.classList.add('scrolled');
     } else {
       header.classList.remove('scrolled');
     }
     
-    // Active Navigation Highlight
     let current = '';
     sections.forEach(section => {
-      const sectionTop = section.offsetTop - 130;
+      const sectionTop = section.offsetTop - 140;
       if (window.scrollY >= sectionTop) {
         current = section.getAttribute('id');
       }
@@ -204,7 +237,6 @@ const initScrollEffects = () => {
       }
     });
     
-    // Scroll Reveal elements
     reveals.forEach(reveal => {
       const elementTop = reveal.getBoundingClientRect().top;
       const windowHeight = window.innerHeight;
@@ -215,7 +247,7 @@ const initScrollEffects = () => {
   };
   
   window.addEventListener('scroll', handleScroll);
-  handleScroll(); // Trigger initial check
+  handleScroll();
 };
 
 // 4. Skills Tab Switcher
@@ -261,15 +293,99 @@ const initProjectFilter = () => {
   });
 };
 
-// 6. Project Modals Data and Handlers
+// 6. Dynamic Card Rotations on Page Load (Messy Maximalism Collage feel)
+const initCardRotations = () => {
+  const targets = document.querySelectorAll('.project-card, .timeline-item, .stat-item, .skills-box, .about-bio, .contact-form, .chat-card');
+  targets.forEach(target => {
+    const randomAngle = (Math.random() * 4 - 2).toFixed(2); // Rotation between -2deg and 2deg
+    target.style.transform = `rotate(${randomAngle}deg)`;
+  });
+};
+
+// 7. Cassette Player Interactive Logic
+const initCassettePlayer = () => {
+  const playBtn = document.getElementById('cassette-play');
+  const pauseBtn = document.getElementById('cassette-pause');
+  const prevBtn = document.getElementById('cassette-prev');
+  const nextBtn = document.getElementById('cassette-next');
+  
+  const spindleLeft = document.getElementById('spindle-left');
+  const spindleRight = document.getElementById('spindle-right');
+  const cassetteTitle = document.getElementById('cassette-title');
+  const bars = document.querySelectorAll('.visualizer-bar');
+  
+  const tracks = [
+    "ISRO Telemetry Mix",
+    "Safre Ride Acoustic",
+    "Sahaya SOS (Gemini Edit)",
+    "NutriTracker MERN mix",
+    "AquaGuard Crypt Demo"
+  ];
+  
+  let currentTrackIndex = 0;
+  let isPlaying = false;
+  let visualizerInterval = null;
+  
+  const startVisualizer = () => {
+    if (visualizerInterval) clearInterval(visualizerInterval);
+    visualizerInterval = setInterval(() => {
+      bars.forEach(bar => {
+        const randomHeight = Math.floor(Math.random() * 23) + 2; // Bouncing height between 2px and 25px
+        bar.style.height = `${randomHeight}px`;
+      });
+    }, 100);
+  };
+  
+  const stopVisualizer = () => {
+    if (visualizerInterval) clearInterval(visualizerInterval);
+    bars.forEach(bar => {
+      bar.style.height = `2px`;
+    });
+  };
+  
+  const playCassette = () => {
+    isPlaying = true;
+    playBtn.classList.add('playing');
+    pauseBtn.classList.remove('playing');
+    spindleLeft.classList.add('spinning');
+    spindleRight.classList.add('spinning');
+    startVisualizer();
+  };
+  
+  const pauseCassette = () => {
+    isPlaying = false;
+    playBtn.classList.remove('playing');
+    pauseBtn.classList.add('playing');
+    spindleLeft.classList.remove('spinning');
+    spindleRight.classList.remove('spinning');
+    stopVisualizer();
+  };
+  
+  const changeTrack = (direction) => {
+    currentTrackIndex = (currentTrackIndex + direction + tracks.length) % tracks.length;
+    cassetteTitle.textContent = tracks[currentTrackIndex];
+    if (isPlaying) {
+      startVisualizer();
+    }
+  };
+  
+  if (playBtn && pauseBtn) {
+    playBtn.addEventListener('click', playCassette);
+    pauseBtn.addEventListener('click', pauseCassette);
+    prevBtn.addEventListener('click', () => changeTrack(-1));
+    nextBtn.addEventListener('click', () => changeTrack(1));
+  }
+};
+
+// 8. Project Modals Configuration
 const projectData = {
   sahaya: {
     title: "Sahaya Emergency Response App",
     meta: "Java, Firebase, Gemini API, Google Maps (2026)",
-    desc: "Engineered a robust, multi-role emergency response Android app linking Users, Volunteers, and Admins during geographical crises.",
+    desc: "A multi-role disaster coordination Android application. Designed roles for Admins, Volunteers, and Users to dispatch requests during geographical crises.",
     bullets: [
       "Engineered real-time volunteer-authority dispatch workflows verified with 11+ users and 13+ live incidents.",
-      "Integrated Google Maps API and device GPS for pinning exact coordinates of disaster reporting locations.",
+      "Integrated Google Maps API and device GPS for pinning disaster reporting locations.",
       "Deployed a hardware SOS alert system dispatching SMS messages containing precise coordinate links.",
       "Designed proximity push notifications to close volunteers using Firebase Cloud Messaging (FCM).",
       "Built a context-aware emergency responder chatbot integrated directly with the Gemini API."
@@ -310,10 +426,10 @@ const initProjectModals = () => {
     if (!data) return;
     
     modalBody.innerHTML = `
-      <div class="project-year" style="margin-top:0;">${data.meta}</div>
+      <div class="project-year" style="margin-top:0; font-family: var(--font-marker);">${data.meta}</div>
       <h3 class="modal-title">${data.title}</h3>
       <p class="modal-desc">${data.desc}</p>
-      <h4 style="margin-bottom:1rem; font-family:var(--font-display); font-weight:800;">CONTRIBUTIONS:</h4>
+      <h4 style="margin-bottom:1rem; font-family:var(--font-marker); font-weight:800; color: var(--red);">CONTRIBUTIONS:</h4>
       <ul class="modal-bullets">
         ${data.bullets.map(b => `<li>${b}</li>`).join('')}
       </ul>
@@ -351,67 +467,66 @@ const initProjectModals = () => {
   });
 };
 
-// 7. Interactive Mock AI Chatbot (Updated with ISRO and ML context)
+// 9. Interactive Mock AI Chatbot (Rock Zine Console Tone)
 const chatbotAnswers = {
   greetings: [
-    "Hello! I am Disha's portfolio console. I can answer queries about her ISRO internship, ML models (SVM, Isolation Forest, LSTM), projects, or skills.",
-    "Console active. Ask me about her satellite anomaly detection research or MERN projects!",
+    "Yo! Welcome to Disha's gig console. Ask me about her ISRO internship metrics, ML anomaly detection models, or full-stack code.",
+    "Console connected. Type a query to read her stats!",
   ],
   isro: [
-    "Disha completed a <b>Machine Learning Research Internship</b> at <b>ISRO</b> (June-July 2026):\n" +
-    "• She developed a time-series anomaly detection system for satellite telemetry & telecommand (TC/TM) sensor logs.\n" +
-    "• Benchmark metrics: <b>One-Class SVM</b> (AUC 0.9662, F1 0.9513, Recall 97.77%, Train time 0.01s) and <b>Isolation Forest</b> (AUC 0.9234, F1 0.7838, Train time 0.29s).\n" +
-    "• She also successfully implemented sequence-aware deep learning models: <b>LSTM, TCN, and GRU</b>."
+    "Disha completed her **ML Research Internship** at **ISRO**:\n" +
+    "• She developed a time-series anomaly detection system for satellite telemetry sensor logs.\n" +
+    "• Benchmarked: **One-Class SVM** (AUC 0.9662, F1 0.9513, Recall 97.77%, Train time 0.01s) vs **Isolation Forest** (AUC 0.9234, F1 0.7838, Train time 0.29s).\n" +
+    "• Coded deep sequence models: **LSTM, TCN, and GRU**."
   ],
   ml: [
-    "Disha's ML skillset includes:\n" +
-    "• <b>Algorithms:</b> Isolation Forest, One-Class SVM, LSTM, TCN, GRU, Supervised & Unsupervised Learning.\n" +
-    "• <b>Libraries:</b> scikit-learn, NumPy, pandas, Matplotlib, Seaborn, TensorFlow.\n" +
-    "• <b>Pipelines:</b> Feature Engineering, Data Preprocessing, Hyperparameter Tuning, and Cross-Validation."
+    "Disha's ML arsenal includes:\n" +
+    "• scikit-learn, NumPy, pandas, TensorFlow (learning).\n" +
+    "• Anomaly Detection, LSTM, TCN, GRU, Feature Engineering, Cross-Validation, and Model Evaluation."
   ],
   safre: [
-    "At <b>SABRE Impact Week</b> in Bangalore (April 2026), Disha presented **Safre**, a verified, safety-first ride-sharing platform designed for university students to secure safe travel."
+    "At **SABRE Impact Week** in Bangalore (April 2026), Disha presented **Safre**, a verified, safety-first ride-sharing platform designed for university students to travel securely."
   ],
   sahaya: [
-    "<b>Sahaya</b> is a disaster management Android application (2026) coded in Java. It includes Google Maps GPS mapping, hardware SOS coordinate dispatches, and a first-aid chatbot utilizing the Gemini API."
+    "**Sahaya** is an Android emergency response app (2026) in Java. Features SOS text alerts with precise GPS links, FCM volunteer push alerts, and a Gemini-powered responder chatbot."
   ],
   nutritracker: [
-    "<b>NutriTracker</b> (2026) is a child growth tracking dashboard built on the MERN stack. It leverages WHO growth standard metrics to classify malnutrition and outputs interactive analytics with Chart.js."
+    "**NutriTracker** (2026) child nutrition tracker built with the MERN stack. Classifies growth states under WHO standards and outputs analytics on a Chart.js/Recharts dashboard."
   ],
   aquaguard: [
-    "<b>AquaGuard</b> (2025) is a digital watermarking tool. It uses LSB steganography in Python, AES-256 symmetric encryption, SHA-3 integrity verification, and MongoDB audit logger."
+    "**AquaGuard** (2025) is an invisible media watermarker. Deployed with Python LSB steganography, AES-256 encryption, SHA-3 hashing, and MongoDB logging audits."
   ],
   internship: [
-    "Disha is currently seeking Machine Learning or Software Engineering internship positions. Contact her at <b>dishagomes2005@gmail.com</b>."
+    "Disha is seeking ML and software engineering internship gigs. Drop a booking or offer to **dishagomes2005@gmail.com**!"
   ],
   music: [
-    "Disha plays the guitar and sings! She is the Social Media & Design Head for <i>Chords & Co.</i> (MIT music club) and designed for Revels '26 and Tech Tatva '25."
+    "She plays the guitar and sings! Disha is the Social Media & Design Head for *Chords & Co.* (music club) and serves on Revels and Tech Tatva committee teams."
   ]
 };
 
 const getAIResponse = (query) => {
   const q = query.toLowerCase();
   
-  if (q.includes('isro') || q.includes('telemetry') || q.includes('satellite') || q.includes('anomaly')) {
+  if (q.includes('isro') || q.includes('anomaly') || q.includes('satellite') || q.includes('telemetry')) {
     return chatbotAnswers.isro[0];
-  } else if (q.includes('model') || q.includes('svm') || q.includes('forest') || q.includes('lstm') || q.includes('gru') || q.includes('tcn') || q.includes('machine') || q.includes('ml') || q.includes('data')) {
+  } else if (q.includes('ml') || q.includes('model') || q.includes('svm') || q.includes('forest') || q.includes('lstm') || q.includes('machine') || q.includes('deep')) {
     return chatbotAnswers.ml[0];
   } else if (q.includes('safre') || q.includes('sabre') || q.includes('ride') || q.includes('sharing')) {
     return chatbotAnswers.safre[0];
   } else if (q.includes('sahaya') || q.includes('disaster') || q.includes('android')) {
     return chatbotAnswers.sahaya[0];
-  } else if (q.includes('nutri') || q.includes('nutrition') || q.includes('mern') || q.includes('anganwadi')) {
+  } else if (q.includes('nutri') || q.includes('nutrition') || q.includes('mern')) {
     return chatbotAnswers.nutritracker[0];
-  } else if (q.includes('aqua') || q.includes('watermark') || q.includes('steg') || q.includes('crypto')) {
+  } else if (q.includes('aqua') || q.includes('watermark') || q.includes('steg')) {
     return chatbotAnswers.aquaguard[0];
-  } else if (q.includes('intern') || q.includes('job') || q.includes('seek') || q.includes('career')) {
+  } else if (q.includes('intern') || q.includes('job') || q.includes('booking') || q.includes('hire')) {
     return chatbotAnswers.internship[0];
-  } else if (q.includes('music') || q.includes('guitar') || q.includes('sing') || q.includes('chords') || q.includes('club')) {
+  } else if (q.includes('music') || q.includes('guitar') || q.includes('sing') || q.includes('chords')) {
     return chatbotAnswers.music[0];
-  } else if (q.includes('hi') || q.includes('hello') || q.includes('hey') || q.includes('greetings')) {
+  } else if (q.includes('hi') || q.includes('hello') || q.includes('hey') || q.includes('yo')) {
     return chatbotAnswers.greetings[Math.floor(Math.random() * chatbotAnswers.greetings.length)];
   } else {
-    return "Query unparsed. Try asking about her 'ISRO internship', 'ML models', 'Safre ride sharing', or MERN/Android 'projects'!";
+    return "Query unparsed. Ask about her 'ISRO internship', 'ML models', 'Safre ride sharing', or MERN/Android 'projects'!";
   }
 };
 
@@ -488,7 +603,7 @@ const initChatbot = () => {
   }
 };
 
-// 8. Mobile Menu Toggle
+// 10. Mobile Menu Toggle
 const initMobileMenu = () => {
   const btn = document.getElementById('mobile-menu-btn');
   const navLinksContainer = document.querySelector('.nav-links');
@@ -504,7 +619,7 @@ const initMobileMenu = () => {
         navLinksContainer.style.display = 'flex';
         navLinksContainer.style.flexDirection = 'column';
         navLinksContainer.style.position = 'absolute';
-        navLinksContainer.style.top = '80px';
+        navLinksContainer.style.top = '85px';
         navLinksContainer.style.left = '0';
         navLinksContainer.style.width = '100%';
         navLinksContainer.style.background = 'var(--bg-beige)';
@@ -523,6 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initSkillsTabs();
   initProjectFilter();
   initProjectModals();
+  initCardRotations();
+  initCassettePlayer();
   initChatbot();
   initMobileMenu();
 });
